@@ -21,7 +21,7 @@ Inputs
   The BRDF_Inverter.py scripts requites a configuration file
   so it can know the location of the input data and format, 
   the output directory and format, tile, etc. 
-  Default is .BEIS_LC.cfg 
+  Default is .Multiply_BRDF.cfg
 
 Outputs
     - A compressed GeoTiff file: BRDF_Parameters.YYYYddd.tif
@@ -36,7 +36,7 @@ Outputs
 """
 
 __author__ = "Gerardo López Saldaña"
-__version__ = "0.2 (20.04.2017)"
+__version__ = "0.3 (21.01.2019)"
 __email__ = "gerardo.lopezsaldana@assimila.eu"
 
 import glob
@@ -501,18 +501,9 @@ def Compute_BRDF( LineToProcess, InitCol, NumberOfCols, mask ):
             K[1,:] = K_profile[ i, j, indices, 1 ][0]
             K[2,:] = K_profile[ i, j, indices, 2 ][0]
 
+            # Vectors to get RMSE
             K = np.matrix( K )
-            #M_ = K * K.T
-            #MI = M_.I
             R = NIR[i, j, indices]
-            #V_ = K * R.T
-            #P_ = ( MI * V_ ).T
-
-            # Get RMSE
-            #FWD = P_ * K
-            #d = FWD - R
-            #e = np.dot( d[0], d[0].T )
-            #rmse_ = np.sqrt( e / NumberOfSamples[i,j] )
 
             #------------------------------------------
             scaler = 1.0
@@ -522,7 +513,7 @@ def Compute_BRDF( LineToProcess, InitCol, NumberOfCols, mask ):
 
                 # Enough observations for DoY
                 # Enough obs from previous DoY
-                #     MELODIES weighted prior from previous DoY
+                #     Assimila weighted prior from previous DoY
                 M_inversion = M + PriorPreviousDoY_Scaled.M[i,j,:,:]
                 V_inversion = V + PriorPreviousDoY_Scaled.V[i,j,:]
 
@@ -542,7 +533,7 @@ def Compute_BRDF( LineToProcess, InitCol, NumberOfCols, mask ):
 
                 # Not enough obs for DoY
                 # Enough obs from previous DoY
-                #     MELODIES non weighted prior from previous DoY
+                #     Assimila non weighted prior from previous DoY
                 M_inversion = M + PriorPreviousDoY.M[i,j,:,:]
                 V_inversion = V + PriorPreviousDoY.V[i,j,:]
 
@@ -576,7 +567,6 @@ def Compute_BRDF( LineToProcess, InitCol, NumberOfCols, mask ):
             Parameters[ abs_i, abs_j,:,:] = P[0].reshape( NumberOfBands, NumberOfParameters )
 
             # Get  NIR RMSE
-            #FWD = P[3:6] * K
             FWD = P[0][3:6] * K
             d = FWD - R
             e = np.dot( d[0], d[0].T )
@@ -779,17 +769,18 @@ for Tile in range(1,NumberOfTiles+1):
     LandMask = np.where((LandMask >= 1) & (LandMask <=3), True, False)
 
     print("Get prior data...")
+    # In here we could set a GlobAlbedo prior style...
     #PriorScaled = GetPrior(PriorDataDir, strYear, strDoY, InitRow, InitCol, \
     #    (rows / NumberOfTiles), cols, type = "MCD43", PriorScaleFactor = 20.0)
 
     # BRDF parameters from previous DoY that would be use as prior
     PriorPreviousDoY_Scaled = GetPrior( OutputDir, strYear, strDoY, \
-        InitRow, InitCol, int(rows / NumberOfTiles), cols, type = "MELODIES", PriorScaleFactor = 20.0)
+        InitRow, InitCol, int(rows / NumberOfTiles), cols, type = "Assimila", PriorScaleFactor = 20.0)
 
     # Get the prior data to be used when there are less 
     # than 3 samples to perform the BRDF model inversion
     PriorPreviousDoY = GetPrior( OutputDir, strYear, strDoY, \
-        InitRow, InitCol, int(rows / NumberOfTiles), cols, type = "MELODIES", PriorScaleFactor = 1.0 )
+        InitRow, InitCol, int(rows / NumberOfTiles), cols, type = "Assimila", PriorScaleFactor = 1.0 )
 
     # Get the prior to be used only as a gap filler
     #Prior = GetPrior(PriorDataDir, strYear, strDoY, InitRow, InitCol, \
